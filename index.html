@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sound Change Applier - Conlang Club @ UCSD</title>
+<meta name="description" content="Test historical sound changes on IPA words. Write rules with features and contexts, watch each derivation step, and share your sound system by link.">
+<link rel="icon" href="/assets/logo.png" type="image/png">
+<link rel="stylesheet" href="/styles.css">
+<link rel="canonical" href="https://phonology.conlangatucsd.com/">
+<meta property="og:title" content="Sound Change Applier | Conlang Club @ UCSD">
+<meta property="og:description" content="Test historical sound changes on IPA words. Write rules with features and contexts, watch each derivation step. Shareable by link.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://phonology.conlangatucsd.com/assets/logo.png">
+<meta property="og:url" content="https://phonology.conlangatucsd.com/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Sound Change Applier | Conlang Club @ UCSD">
+<meta name="twitter:description" content="Test historical sound changes on IPA words. Write rules with features and contexts. Shareable by link.">
+<meta name="twitter:image" content="https://phonology.conlangatucsd.com/assets/logo.png">
+
+<!-- I'm keeping style.css consistent between pages
+  so these are things that weren't in the original -->
+<style>
+  button.btn{ cursor: pointer; }
+  .btn[disabled]{ opacity: 0.5; cursor: not-allowed; }
+
+  .gen-layout{
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 36px;
+    align-items: start;
+  }
+  .gen-out{ position: sticky; top: 104px; }
+  @media (max-width: 960px){
+    .gen-layout{ grid-template-columns: 1fr; }
+    .gen-out{ position: static; }
+  }
+
+  .preset-row{ display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 0 26px; }
+
+  .field{ margin-bottom: 20px; }
+  .field > label, .field > .label{
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+  }
+  .field .hint{
+    font-size: 0.85rem;
+    color: #5a3a58;
+    margin: 5px 0 0;
+    max-width: none;
+    line-height: 1.45;
+  }
+  .field .hint code, .faq-answer code{
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 0.88em;
+    background: var(--cream);
+    border: 1px solid rgba(23,17,15,0.35);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .gen-input{
+    width: 100%;
+    font: inherit;
+    font-size: 0.95rem;
+    color: var(--ink);
+    background: var(--cream);
+    border: var(--line) solid var(--ink);
+    border-radius: 8px;
+    padding: 0.55em 0.7em;
+  }
+  textarea.gen-input, .gen-input--code{
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  .field-row{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 480px){ .field-row{ grid-template-columns: 1fr; } }
+
+  .checks{ display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 4px; }
+  .check{ display: inline-flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer; }
+  .check input{ width: 20px; height: 20px; accent-color: var(--purple); cursor: pointer; }
+
+  .out-head{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-bottom: 14px;
+  }
+  .out-head h2{ font-size: 1.5rem; margin: 0; }
+  .out-actions{ display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
+
+  .parsed-wrap{ margin-bottom: 18px; }
+  .parsed-wrap h3, .result-wrap h3{
+    font-family: var(--font-display);
+    font-size: 1rem;
+    margin: 0 0 8px;
+  }
+  #parsed{
+    margin: 0;
+    padding-left: 1.4em;
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  #parsed li{ margin-bottom: 4px; }
+  #parsed em{ font-family: var(--font-body); font-size: 0.82rem; color: var(--purple-deep); }
+  .mx{
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    vertical-align: baseline;
+  }
+  .mx span{
+    background: var(--cream);
+    border: 1px solid rgba(23,17,15,0.45);
+    border-radius: 4px;
+    padding: 0 4px;
+    margin: 0 1px;
+    white-space: nowrap;
+  }
+
+  .table-scroll{ overflow-x: auto; border: var(--line) solid var(--ink); border-radius: 8px; background: var(--cream); }
+  table.dtab{ width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+  table.dtab th, table.dtab td{
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(23,17,15,0.2);
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    white-space: nowrap;
+  }
+  table.dtab thead th{
+    font-family: var(--font-display);
+    background: var(--gold);
+    border-bottom: var(--line) solid var(--ink);
+  }
+  table.dtab tbody tr:last-child td{ border-bottom: 0; }
+  table.dtab td b{ font-weight: 700; }
+  .same{ color: rgba(23,17,15,0.35); }
+  .out-empty{ margin: 0; font-style: italic; padding: 12px; }
+
+  .gen-notes{ margin: 16px 0 0; }
+  .gen-notes[hidden]{ display: none; }
+  .gen-notes div + div{ margin-top: 6px; }
+  .gen-notes{
+    font-size: 0.88rem;
+    background: var(--cream);
+    border: 2px dashed var(--ink);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .gen-status{ min-height: 1.6em; margin: 12px 0 0; font-size: 0.9rem; font-weight: 600; color: var(--purple-deep); max-width: none; }
+
+  .gen-help{ border-top: var(--line-thick) solid var(--ink); }
+  .gen-help .faq-list{ max-width: 860px; }
+  .faq-answer ul{ margin: 0.6em 0 0; padding-left: 1.2em; }
+  .faq-answer li{ margin-bottom: 0.35em; }
+</style>
+</head>
+<body>
+
+<div data-include="header">
+<header class="site-header">
+  <nav class="nav">
+    <a class="brand" href="https://conlangatucsd.com/">
+      <img src="/assets/logo.png" alt="Conlang Club at UCSD logo" width="46" height="46" decoding="async">
+      <span class="brand-text">Conlang Club<span>@ UC San Diego</span></span>
+    </a>
+    <ul class="nav-links nav-links--static">
+      <li><a href="https://conlangatucsd.com/">Home</a></li>
+      <li><a href="https://conlangatucsd.com/tlag/">Tlag</a></li>
+      <li><a href="https://conlangatucsd.com/about/">About Us</a></li>
+      <li><a href="https://conlangatucsd.com/officers/">Officers</a></li>
+      <li><a href="https://conlangatucsd.com/projects/">Member Projects</a></li>
+      <li><a href="https://conlangatucsd.com/tools/">Tools</a></li>
+      <li><a href="https://conlangatucsd.com/faq/">FAQ</a></li>
+      <li><a href="https://discord.gg/PdkpT26AHG">Join Discord</a></li>
+    </ul>
+  </nav>
+</header>
+</div>
+
+<main>
+
+  <section class="page-banner">
+    <div class="wrap">
+      <h1>Sound change applier</h1>
+      <p>Write historical sound changes in IPA, run them on words, and see each rule apply step by step.</p>
+    </div>
+  </section>
+
+  <section class="section-cream">
+    <div class="wrap">
+
+      <span class="eyebrow-tag">Start from a preset</span>
+      <div class="preset-row" id="presets" role="group" aria-label="Presets"></div>
+
+      <div class="gen-layout">
+
+        <form class="card" id="form" autocomplete="off" onsubmit="return false;">
+          <h2 style="font-size:1.5rem;">Settings</h2>
+
+          <div class="field">
+            <label for="words">Input words</label>
+            <textarea class="gen-input" id="words" rows="6" spellcheck="false" placeholder="ˈbʌtɚ&#10;ˈlædɚ&#10;ˈætəm"></textarea>
+            <p class="hint">IPA, separated by spaces or new lines. Use <code>ˈ</code> / <code>ˌ</code> for stress, <code>+</code> for a morpheme boundary, <code>.</code> for a syllable break.</p>
+          </div>
+
+          <div class="field">
+            <label for="rules">Sound changes and classes</label>
+            <textarea class="gen-input" id="rules" rows="10" spellcheck="false" placeholder="// t, d become a flap between vowels&#10;[+stop +cons +alveolar] > ɾ / [+vowel +stressed] _ [+vowel -stressed]"></textarea>
+            <p class="hint">One rule or class per line, written <code>T &gt; X / L _ R</code>. Lines starting with <code>//</code> are ignored. See the syntax guide below.</p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="mode">Application direction</label>
+              <select class="gen-input" id="mode">
+                <option value="sim">Simultaneous: all at once</option>
+                <option value="ltr">Left to right: iterate forward</option>
+                <option value="rtl">Right to left: iterate backward</option>
+              </select>
+              <p class="hint">A rule can override this with <code>@sim</code>, <code>@ltr</code>, or <code>@rtl</code>.</p>
+            </div>
+            <div class="field">
+              <span class="label">Word format</span>
+              <div class="checks">
+                <label class="check"><input type="checkbox" id="dots" checked> Ignore syllable dots</label>
+              </div>
+              <p class="hint">When unchecked, <code>.</code> is kept and rules can match it with <code>$</code>.</p>
+            </div>
+          </div>
+        </form>
+
+        <div class="card gen-out" id="output-card">
+          <div class="out-head">
+            <h2>Derivation</h2>
+          </div>
+          <div class="out-actions">
+            <button type="button" class="btn btn--small" id="copy-out">Copy input + output</button>
+            <button type="button" class="btn btn--small" id="copy-link">Copy link</button>
+          </div>
+
+          <div class="parsed-wrap">
+            <h3>Rules as understood</h3>
+            <ol id="parsed"></ol>
+          </div>
+
+          <div class="result-wrap">
+            <h3>Step by step</h3>
+            <div class="table-scroll">
+              <div id="result" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <div class="sample-script gen-notes" id="notes" hidden></div>
+          <p class="gen-status" id="status" role="status" aria-live="polite"></p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="section-paper gen-help">
+    <div class="wrap">
+      <span class="eyebrow-tag">Syntax guide</span>
+      <h2>How the rules work</h2>
+      <div class="faq-list" style="margin-top:30px;">
+
+        <details class="faq-item">
+          <summary>Writing a rule</summary>
+          <div class="faq-answer">
+            <p>A rule is <code>target &gt; change / left _ right</code>. The <code>_</code> marks where the target sits, and <code>/ left _ right</code> may be left off to apply everywhere. <code>→</code> works the same as <code>&gt;</code>.</p>
+            <ul>
+              <li><code>t &gt; d / V _ V</code>: plain sounds.</li>
+              <li><code>∅ &gt; ɪ / s + _ z</code>: <code>∅</code> inserts a sound.</li>
+              <li><code>l &gt; ∅ / C + _ #</code>: <code>∅</code> on the right deletes.</li>
+              <li><code>s &gt; ʃ / _ i</code>: context can be one-sided.</li>
+              <li><code>k &gt; g @ltr</code>: put <code>@sim</code>, <code>@ltr</code>, or <code>@rtl</code> at the end to override the global direction for that rule.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary>Features and classes</summary>
+          <div class="faq-answer">
+            <p>Use <code>[+voice -continuant]</code> for feature bundles, with <code>+</code> or <code>-</code> in front of every feature. Single capitals are classes: <code>C</code> (non-vowel) and <code>V</code> (vowel) exist by default.</p>
+            <ul>
+              <li><code>N = m/n/ŋ</code>: define a class from IPA symbols.</li>
+              <li><code>S = [+fricative]</code>: define a class from features.</li>
+              <li>Known features include <code>vowel consonantal sonorant continuant stop fricative affricate nasal approximant rhotic lateral voice labial dental alveolar retroflex palatal velar uvular glottal high low front back round tense stressed long aspirated ejective</code>.</li>
+              <li>Shortcuts work too: <code>cons</code> for <code>consonantal</code>, <code>cont</code> for <code>continuant</code>, <code>approx</code>, <code>lat</code>, <code>lab</code>, <code>alv</code>, <code>pal</code>, <code>vel</code>, <code>asp</code>, and more.</li>
+              <li><code>[αback]</code> with <code>α β γ δ</code> copies a value: <code>[+nasal] &gt; [αlabial βalveolar γpalatal δvelar] / _ [+stop αlabial βalveolar γpalatal δvelar]</code> assimilates nasal place.</li>
+              <li>Changing features rewrites to the nearest IPA symbol, adding <code>̃ ː ʰ ʼ ◌̥ ◌̬</code> as needed. If no exact symbol exists you get a warning and the closest match.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary>Contexts and boundaries</summary>
+          <div class="faq-answer">
+            <ul>
+              <li><code>#</code>: word edge, as in <code>[-sonorant +voice] &gt; [-voice] / _ (+) #</code>.</li>
+              <li><code>+</code>: morpheme boundary. Write it in words with <code>+</code>, e.g. <code>kæt+z</code>. <code>(+)</code> makes it optional.</li>
+              <li><code>$</code>: syllable boundary. Write it in words with <code>.</code>, and uncheck “Ignore syllable dots” so rules can see it.</li>
+              <li><code>(X)</code>: optional element. <code>{a, b}</code>: pick either branch. <code>X*</code>: zero or more of X.</li>
+              <li><code>(C)%</code> is not a thing here. Optionality is plain <code>(C)</code>.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary>Application direction</summary>
+          <div class="faq-answer">
+            <p>Rules run top to bottom; the table shows each intermediate form, with <code>·</code> when a rule changes nothing. Order matters: try swapping the Russian <code>l &gt; ∅</code> and devoicing lines in the preset to see feeding go wrong.</p>
+            <ul>
+              <li><code>sim</code>: find all matches first, then change them at once (good for clean, parallel changes).</li>
+              <li><code>ltr</code>: scan left to right and keep applying (needed for spreading, like vowel harmony).</li>
+              <li><code>rtl</code>: scan right to left.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary>Words and IPA input</summary>
+          <div class="faq-answer">
+            <ul>
+              <li>Separate words with spaces or new lines (up to 500 are shown).</li>
+              <li><code>ˈ</code> marks the next syllable stressed; <code>ˌ</code> marks secondary stress. Stress is a <code>[+stressed]</code> vowel feature rules can match.</li>
+              <li>Affricates like <code>tʃ dʒ ts</code>, tie bars, and modifiers <code>ʰ ʷ ʲ ˠ ˤ ʼ ː ˑ ˔</code> plus combining diacritics are parsed as one segment.</li>
+              <li>Unknown symbols still run, but feature rules cannot match them — the page warns you.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary>Sharing and deep links</summary>
+          <div class="faq-answer">
+            <p>Every change updates the address bar. Copy the link and anyone who opens it sees your exact words, rules, direction, and dot setting.</p>
+            <p>If you build links by hand, the parameters are <code>w</code> (words), <code>r</code> (rules), <code>m</code> (<code>sim</code>, <code>ltr</code>, or <code>rtl</code>), and <code>dots</code> (<code>1</code> or <code>0</code>).</p>
+          </div>
+        </details>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="section-gold">
+    <div class="wrap">
+      <div class="meeting-strip">
+        <div style="text-align:center; width:100%;">
+          <h2 style="max-width:34ch; margin:0 auto 12px;">Got a good one?</h2>
+          <p style="max-width:46ch; margin:0 auto 22px;">Share your sound system and favorite derivations with the club on Discord, or bring it to a Friday workshop.</p>
+          <a class="btn btn--small" href="https://discord.gg/PdkpT26AHG" target="_blank" rel="noopener">Join our Discord</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div data-include="footer">
+<footer class="site-footer site-footer--static">
+  <div class="wrap">
+    <p><strong style="color:#fff;">Conlang Club @ UCSD</strong><br><a href="https://conlangatucsd.com/">Home</a> · <a href="https://conlangatucsd.com/tlag/">Tlag</a> · <a href="https://conlangatucsd.com/about/">About</a> · <a href="https://conlangatucsd.com/officers/">Officers</a> · <a href="https://conlangatucsd.com/projects/">Projects</a> · <a href="https://conlangatucsd.com/tools/">Tools</a> · <a href="/">Sound Change Applier</a> · <a href="https://word-generator.conlangatucsd.com/">Word Generator</a> · <a href="https://dictionary.conlangatucsd.com/">Dictionary Manager</a> · <a href="https://conlangatucsd.com/faq/">FAQ</a> · <a href="https://discord.gg/PdkpT26AHG">Discord</a> · <a href="mailto:conlangclubatucsd@gmail.com">Email</a></p>
+    <p>&copy; <span data-year>2026</span> Conlang Club @ UCSD</p>
+  </div>
+</footer>
+</div>
+
+<script src="/script.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
